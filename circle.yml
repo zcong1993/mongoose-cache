@@ -6,8 +6,8 @@ jobs:
       - image: circleci/redis:latest
       - image: circleci/mongo:latest
     environment:
-      MONGO_URI=mongodb://localhost/cache-test
-      REDIS_URI=redis://localhost
+      MONGO_URI:mongodb://localhost/cache-test
+      REDIS_URI:redis://localhost
     branches:
       ignore:
         - gh-pages # list of branches to ignore
