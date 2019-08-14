@@ -2,12 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/redis:latest
-      - image: circleci/mongo:latest
       - image: circleci/node:10.16.2
         environment:
           MONGO_URI=mongodb://localhost/cache-test
           REDIS_URI=redis://localhost
+      - image: circleci/redis:latest
+      - image: circleci/mongo:latest
     branches:
       ignore:
         - gh-pages # list of branches to ignore
