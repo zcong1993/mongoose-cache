@@ -21,7 +21,7 @@ export const buildKeysWithoOpt = <
 const findMany = async <T extends Document = Document, QueryHelpers = {}>(
   ctx: ContextWithModel<T, QueryHelpers>,
   keys: string[],
-  field: string = '_id'
+  field: string
 ) => {
   return ctx.model.find({
     [field]: {
@@ -62,7 +62,7 @@ export const delCache = async <
 export const getMany = async <T extends Document = Document, QueryHelpers = {}>(
   ctx: ContextWithModel<T, QueryHelpers>,
   keys: string[],
-  field: string = '_id'
+  field: string
 ) => {
   if (!ctx.enable) {
     return findMany(ctx, keys, field)
@@ -89,7 +89,7 @@ export const getMany = async <T extends Document = Document, QueryHelpers = {}>(
 export const get = async <T extends Document = Document, QueryHelpers = {}>(
   ctx: ContextWithModel<T, QueryHelpers>,
   key: string,
-  field: string = '_id'
+  field: string
 ) => {
   const [value] = await getMany(ctx, [key], field)
   return value
@@ -99,7 +99,7 @@ export const buildDelKeys = <T extends Document = Document, QueryHelpers = {}>(
   ctx: ContextWithModel<T, QueryHelpers>,
   doc: T
 ) => {
-  const fields = [...ctx.externalKeys] || []
+  const fields = ctx.externalKeys ? [...ctx.externalKeys] : []
   fields.push('_id')
 
   return fields.map(field => buildKeysWithoOpt(ctx, field, (doc as any)[field]))

@@ -38,6 +38,33 @@ createCachePlugin({
 
 const Test2 = mongoose.model<any, CacheModel<any>>('Test2', Test2Schema)
 
+const Test3Schema = new mongoose.Schema({
+  name: String,
+  age: Number,
+  is_deleted: Boolean
+})
+
+createCachePlugin({
+  redis,
+  enable: true,
+  externalKeys: ['name']
+})(Test3Schema)
+
+const Test3 = mongoose.model<any, CacheModel<any>>('Test3', Test3Schema)
+
+const Test4Schema = new mongoose.Schema({
+  name: String,
+  age: Number,
+  is_deleted: Boolean
+})
+
+createCachePlugin({
+  redis,
+  enable: true
+})(Test4Schema)
+
+const Test4 = mongoose.model<any, CacheModel<any>>('Test4', Test4Schema)
+
 const test1 = {
   name: 'test1',
   age: 18,
@@ -58,13 +85,16 @@ const test3 = {
 
 beforeEach(async () => {
   await Test.create([test1, test2, test3])
-
   await Test2.create([test1, test2, test3])
+  await Test3.create([test1, test2, test3])
+  await Test4.create([test1, test2, test3])
 })
 
 afterEach(async () => {
   await Test.deleteMany({})
   await Test2.deleteMany({})
+  await Test3.deleteMany({})
+  await Test4.deleteMany({})
   await redis.flushdb()
 })
 
@@ -104,6 +134,75 @@ it('should work well', async () => {
   ])
 
   const getManyByIdRes = await Test.getManyBy([
+    test1Record._id.toString(),
+    test2Record._id.toString()
+  ])
+  expect(getManyByIdRes.map(r => (r ? r.toObject() : r))).toEqual([
+    test1Record.toObject(),
+    test2Record.toObject()
+  ])
+})
+
+it('should works well without extQuery', async () => {
+  const test1Record = await Test3.findOne({ name: 'test1' })
+  const test2Record = await Test3.findOne({ name: 'test2' })
+  for (const _ of Array(10).fill(null)) {
+    const test1Res = await Test3.getBy('test1', 'name')
+    expect(test1Res.toObject()).toEqual(test1Record.toObject())
+
+    const test2Res = await Test3.getBy('test2', 'name')
+    expect(test2Res.toObject()).toEqual(test2Record.toObject())
+  }
+
+  let keys = await redis.keys('*')
+  expect(keys.length).toBe(2)
+
+  for (const _ of Array(10).fill(null)) {
+    const test1Res = await Test3.getBy(test1Record._id.toString())
+    expect(test1Res.toObject()).toEqual(test1Record.toObject())
+
+    const test2Res = await Test3.getBy(test2Record._id.toString())
+    expect(test2Res.toObject()).toEqual(test2Record.toObject())
+  }
+
+  keys = await redis.keys('*')
+  expect(keys.length).toBe(4)
+
+  const getManyRes = await Test3.getManyBy(['test1', 'test2'], 'name')
+  expect(getManyRes.map(r => (r ? r.toObject() : r))).toEqual([
+    test1Record.toObject(),
+    test2Record.toObject()
+  ])
+
+  const getManyByIdRes = await Test3.getManyBy([
+    test1Record._id.toString(),
+    test2Record._id.toString()
+  ])
+  expect(getManyByIdRes.map(r => (r ? r.toObject() : r))).toEqual([
+    test1Record.toObject(),
+    test2Record.toObject()
+  ])
+})
+
+it('should works well without externalKeys', async () => {
+  const test1Record = await Test4.findOne({ name: 'test1' })
+  const test2Record = await Test4.findOne({ name: 'test2' })
+
+  let keys = await redis.keys('*')
+  expect(keys.length).toBe(0)
+
+  for (const _ of Array(10).fill(null)) {
+    const test1Res = await Test4.getBy(test1Record._id.toString())
+    expect(test1Res.toObject()).toEqual(test1Record.toObject())
+
+    const test2Res = await Test4.getBy(test2Record._id.toString())
+    expect(test2Res.toObject()).toEqual(test2Record.toObject())
+  }
+
+  keys = await redis.keys('*')
+  expect(keys.length).toBe(2)
+
+  const getManyByIdRes = await Test4.getManyBy([
     test1Record._id.toString(),
     test2Record._id.toString()
   ])
@@ -159,6 +258,17 @@ it('delete should works well', async () => {
   expect(keys.length).toBe(1)
 
   await Test.delCache('test2', 'name')
+  keys = await redis.keys('*')
+  expect(keys.length).toBe(0)
+})
+
+it('delete cache should works well', async () => {
+  const test1Record = await Test.findOne({ name: 'test1' })
+  await Test.getBy(test1Record._id.toString())
+  let keys = await redis.keys('*')
+  expect(keys.length).toBe(1)
+
+  await Test.delCache(test1Record._id.toString())
   keys = await redis.keys('*')
   expect(keys.length).toBe(0)
 })
