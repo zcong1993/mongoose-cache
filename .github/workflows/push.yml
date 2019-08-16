@@ -18,12 +18,12 @@ jobs:
       run: |
         docker run -d --name redis -p 6379:6379 redis:latest
         docker run -d --name mongo -p 27017:27017 mongo:latest
-        dockerize -wait tcp://localhost:6379 -timeout 1m
-        dockerize -wait tcp://localhost:27017 -timeout 1m
     - name: yarn install, and test
       env:
         MONGO_URI: mongodb://localhost/cache-test
         REDIS_URI: redis://localhost
       run: |
         yarn
+        dockerize -wait tcp://localhost:6379 -timeout 1m
+        dockerize -wait tcp://localhost:27017 -timeout 1m
         yarn test:cov
